@@ -1,6 +1,6 @@
 module Main where
 
-import Lib
+import Network.Stockfighter.Lib
 
 main :: IO ()
 main = someFunc

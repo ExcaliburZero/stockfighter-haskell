@@ -1,4 +1,4 @@
-module Lib
+module Network.Stockfighter.Lib
     ( someFunc
     ) where
 
