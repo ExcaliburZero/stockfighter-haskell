@@ -3,7 +3,7 @@ version:             0.1.0
 synopsis:            A simple library for working with Stockfighter.
 description:         Please see README.md
 homepage:            https://github.com/ExcaliburZero/stockfighter#readme
-license:             MIT 
+license:             MIT
 license-file:        LICENSE
 author:              Christopher Wells
 maintainer:          cwellsny@nycap.rr.com
@@ -15,8 +15,10 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Network.Stockfighter.Lib
+  exposed-modules:     Network.Stockfighter.Trade
   build-depends:       base >= 4.7 && < 5
+                     , process
+                     , directory
   default-language:    Haskell2010
 
 executable stockfighter-exe
