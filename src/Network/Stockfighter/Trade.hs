@@ -43,9 +43,12 @@ module Network.Stockfighter.Trade
 )
 where
 
-import System.Directory (removeFile)
-import System.IO (hGetContents)
-import System.Process (CreateProcess(..), createProcess, shell, StdStream(CreatePipe), waitForProcess)
+import Control.Monad ()
+import Data.Aeson (encode, object, pairs, toEncoding, ToJSON, toJSON, (.=))
+import Data.Semigroup ((<>))
+import Data.Text (pack)
+
+import Network.Stockfighter.Util
 
 -- | A representation of a stock order. An order can be requested using the
 -- `requestOrder` function.
@@ -58,6 +61,29 @@ data Order = Order {
     , direction :: Direction
     , orderType :: OrderType
   } deriving (Eq, Show)
+
+instance ToJSON Order where
+  toJSON order =
+    object [
+          pack "account"   .= account order
+        , pack "venue"     .= venue order
+        , pack "symbol"    .= symbol order
+        , pack "price"     .= price order
+        , pack "qty"       .= quantity order
+        , pack "direction" .= show (direction order)
+        , pack "orderType" .= show (orderType order)
+      ]
+
+  toEncoding order =
+    pairs (
+           pack "account"   .= account order
+        <> pack "venue"     .= venue order
+        <> pack "symbol"    .= symbol order
+        <> pack "price"     .= price order
+        <> pack "qty"       .= quantity order
+        <> pack "direction" .= show (direction order)
+        <> pack "orderType" .= show (orderType order)
+      )
 
 -- | An account with which an order can be made.
 --
@@ -130,52 +156,12 @@ requestOrder order apikey = response
         requestInfo = createOrderRequest order baseUrl apikey
         baseUrl = "https://api.stockfighter.io/ob/api"
 
-type BaseUrl = String
-type RequestUrl = String
-type HTTPHeader = [(String, String)]
-type RequestContents = String
-type Request = (RequestUrl, HTTPHeader, RequestContents)
-
 -- | Creates an order request from an order, API base url, and APIKey.
 createOrderRequest :: Order -> BaseUrl -> APIKey -> Request
 createOrderRequest order baseUrl apikey = (requestUrl, httpHeader, requestContents)
   where requestUrl = baseUrl ++ "/venues/" ++ venue order ++ "/stocks/" ++ symbol order ++ "/orders"
         httpHeader = [("X-Starfighter-Authorization", apikey)]
-        requestContents = orderToRequestContents order
-
--- | Converts an order into the json contents of the order request.
-orderToRequestContents :: Order -> RequestContents
-orderToRequestContents order = requestContents
-  where requestContents = "{\n" ++
-          section "account" (account order) ++ ",\n" ++
-          section "venue" (venue order) ++ ",\n" ++
-          section "symbol" (symbol order) ++ ",\n" ++
-          section "price" (price order) ++ ",\n" ++
-          section "qty" (quantity order) ++ ",\n" ++
-          section "direction" (show $ direction order) ++ ",\n" ++
-          section "orderType" (show $ orderType order) ++ "\n" ++
-          "}\n"
-        section label value = "  \"" ++ label ++ "\": " ++ show value
-
--- | Sends the given request.
-sendRequest :: Request -> IO String
-sendRequest (url, header, contents) = response
-  where response = do writeFile orderFileName contents
-                      (_, Just stdout, _, handler) <- createProcess (shell curlCommand){ std_out = CreatePipe }
-                      _ <- waitForProcess handler
-                      removeFile orderFileName
-                      hGetContents stdout
-        curlCommand = curlCommand2
-        curlCommand2 = unwords ["curl", "-sS", url, "-d", "@" ++ orderFileName,
-                                "-H", "\"" ++ headerToString header ++ "\""
-                               ]
-        orderFileName = "tmp-Order.json"
-
--- | Converts an http header definition into its corresponding String
--- representation.
-headerToString :: HTTPHeader -> String
-headerToString [] = ""
-headerToString ((key, value):xs) = key ++ ":" ++ value ++ ";" ++ headerToString xs
+        requestContents = byteStringToString $ encode order
 
 -- | An example Order to test with.
 testOrder :: Order
