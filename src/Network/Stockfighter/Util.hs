@@ -1,5 +1,15 @@
 module Network.Stockfighter.Util where
 
+import Data.Aeson (encode)
+import Data.ByteString.Lazy (ByteString, unpack)
+import Data.Char (chr)
+import System.Directory (removeFile)
+import System.IO (hGetContents)
+import System.Process (CreateProcess(..), createProcess, shell, StdStream(CreatePipe), waitForProcess)
+
+byteStringToString :: ByteString -> String
+byteStringToString bytestring = map (chr . fromIntegral) $ unpack bytestring
+
 type BaseUrl = String
 type RequestUrl = String
 type HTTPHeader = [(String, String)]
