@@ -47,6 +47,8 @@ import System.Directory (removeFile)
 import System.IO (hGetContents)
 import System.Process (CreateProcess(..), createProcess, shell, StdStream(CreatePipe), waitForProcess)
 
+import Network.Stockfighter.Util
+
 -- | A representation of a stock order. An order can be requested using the
 -- `requestOrder` function.
 data Order = Order {
@@ -129,12 +131,6 @@ requestOrder order apikey = response
   where response = sendRequest requestInfo
         requestInfo = createOrderRequest order baseUrl apikey
         baseUrl = "https://api.stockfighter.io/ob/api"
-
-type BaseUrl = String
-type RequestUrl = String
-type HTTPHeader = [(String, String)]
-type RequestContents = String
-type Request = (RequestUrl, HTTPHeader, RequestContents)
 
 -- | Creates an order request from an order, API base url, and APIKey.
 createOrderRequest :: Order -> BaseUrl -> APIKey -> Request
