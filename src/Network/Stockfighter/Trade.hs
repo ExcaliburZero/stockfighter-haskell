@@ -34,25 +34,19 @@ performOrder = response
 >>> performOrder
 "{\"ok\":false,\"error\":\"Auth/auth failed: %!(EXTRA string=Couldn't find that apiKey, service reports: No fighter with that API key.)\"}\n"
 -}
-{-# LANGUAGE DeriveGeneric #-}
 module Network.Stockfighter.Trade
-{-
 (
   requestOrder,
-
-  testOrder,
 
   Order(..), Account, Venue, Symbol, Price, Quantity, Direction(..),
   OrderType(..), APIKey
 )
--}
 where
 
-import GHC.Generics
-
-import Data.Aeson
-import Data.Text
 import Control.Monad (mzero)
+import Data.Aeson
+import Data.Semigroup
+import Data.Text
 
 import Network.Stockfighter.Util
 
@@ -66,18 +60,7 @@ data Order = Order {
     , quantity  :: Quantity
     , direction :: Direction
     , orderType :: OrderType
-  } deriving (Eq, Show, Generic)
-
-instance FromJSON Order where
-  parseJSON (Object v) = Order
-    <$> v .: pack "account"
-    <*> v .: pack "venue"
-    <*> v .: pack "symbol"
-    <*> v .: pack "price"
-    <*> v .: pack "quantity"
-    <*> v .: pack (show "direction")
-    <*> v .: pack (show "orderType")
-  parseJSON _ = mzero
+  } deriving (Eq, Show)
 
 instance ToJSON Order where
   toJSON order =
@@ -86,30 +69,21 @@ instance ToJSON Order where
         , pack "venue"     .= venue order
         , pack "symbol"    .= symbol order
         , pack "price"     .= price order
-        , pack "quantity"  .= quantity order
+        , pack "qty"       .= quantity order
         , pack "direction" .= show (direction order)
         , pack "orderType" .= show (orderType order)
       ]
 
-{-
-λ ~ import Data.Char
-λ ~ import Data.ByteString.Lazy
-λ ~ map (chr . fromIntegral) $ unpack $ encode testOrder
-
-<interactive>:4:1:
-    Ambiguous occurrence ‘map’
-    It could refer to either ‘Prelude.map’,
-                             imported from ‘Prelude’ at /home/chris/Code/stockfighter/app/Main.hs:1:8-11
-                             (and originally defined in ‘GHC.Base’)
-                          or ‘Data.ByteString.Lazy.map’,
-                             imported from ‘Data.ByteString.Lazy’
-
-<interactive>:4:37: Not in scope: ‘encode’
-λ ~ import Data.Aeson
-λ ~ Prelude.map (chr . fromIntegral) $ unpack $ encode testOrder
-"{\"venue\":\"TESTEX\",\"direction\":\"buy\",\"quantity\":100,\"orderType\":\"limit\",\"symbol\":\"FOOBAR\",\"account\":\"EXB123456\",\"price\":25000}"
-λ ~ putStrLn $ Prelude.map (chr . fromIntegral) $ unpack $ encode testOrder
--}
+  toEncoding order =
+    pairs (
+           pack "account"   .= account order
+        <> pack "venue"     .= venue order
+        <> pack "symbol"    .= symbol order
+        <> pack "price"     .= price order
+        <> pack "qty"       .= quantity order
+        <> pack "direction" .= show (direction order)
+        <> pack "orderType" .= show (orderType order)
+      )
 
 -- | An account with which an order can be made.
 --
@@ -140,21 +114,18 @@ type Quantity = Int
 -- | A direction of a trade indicating whether one is buying or selling stocks.
 data Direction = Buy  -- ^ Stocks are being purchased
                | Sell -- ^ Stocks are being sold
-  deriving (Eq, Generic)
+  deriving (Eq)
 
 -- | Converts the direction into the string format used by the API
 instance Show Direction where
   show Buy  = "buy"
   show Sell = "sell"
 
-instance FromJSON Direction
-instance ToJSON Direction
-
 -- | A type of an order. See the Stockfighter API entry on
 -- <https://starfighter.readme.io/docs/place-new-order#order-types order types>
 -- for more information.
 data OrderType = Limit | Market | FillOrKill | ImmediateOrCancel
-  deriving (Eq, Generic)
+  deriving (Eq)
 
 -- | Converts the order type into the string format used by the API
 instance Show OrderType where
@@ -162,9 +133,6 @@ instance Show OrderType where
   show Market            = "market"
   show FillOrKill        = "fill-or-kill"
   show ImmediateOrCancel = "immeditate-or-cancel"
-
-instance FromJSON OrderType
-instance ToJSON OrderType
 
 -- | The API key used to place an order.
 --
