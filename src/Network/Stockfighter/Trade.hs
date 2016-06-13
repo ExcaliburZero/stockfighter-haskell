@@ -43,10 +43,10 @@ module Network.Stockfighter.Trade
 )
 where
 
-import Control.Monad (mzero)
-import Data.Aeson
-import Data.Semigroup
-import Data.Text
+import Control.Monad ()
+import Data.Aeson (encode, object, pairs, toEncoding, ToJSON, toJSON, (.=))
+import Data.Semigroup ((<>))
+import Data.Text (pack)
 
 import Network.Stockfighter.Util
 
@@ -162,20 +162,6 @@ createOrderRequest order baseUrl apikey = (requestUrl, httpHeader, requestConten
   where requestUrl = baseUrl ++ "/venues/" ++ venue order ++ "/stocks/" ++ symbol order ++ "/orders"
         httpHeader = [("X-Starfighter-Authorization", apikey)]
         requestContents = byteStringToString $ encode order
-
--- | Converts an order into the json contents of the order request.
-orderToRequestContents :: Order -> RequestContents
-orderToRequestContents order = requestContents
-  where requestContents = "{\n" ++
-          section "account" (account order) ++ ",\n" ++
-          section "venue" (venue order) ++ ",\n" ++
-          section "symbol" (symbol order) ++ ",\n" ++
-          section "price" (price order) ++ ",\n" ++
-          section "qty" (quantity order) ++ ",\n" ++
-          section "direction" (show $ direction order) ++ ",\n" ++
-          section "orderType" (show $ orderType order) ++ "\n" ++
-          "}\n"
-        section label value = "  \"" ++ label ++ "\": " ++ show value
 
 -- | An example Order to test with.
 testOrder :: Order
