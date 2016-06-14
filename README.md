@@ -6,15 +6,15 @@ performOrder :: IO String
 performOrder = response
   where response = requestOrder myOrder myAPIKey
         myOrder  = Order {
-            account   = "EXB123456"
-          , venue     = "TESTEX"
-          , symbol    = "FOOBAR"
-          , price     = 25000
-          , quantity  = 100
+            account   = Account "EXB123456"
+          , venue     = Venue "TESTEX"
+          , symbol    = Symbol "FOOBAR"
+          , price     = Price 25000
+          , quantity  = Quantity 100
           , direction = Buy
           , orderType = Limit
         }
-        myAPIKey = "n3vy87nviqufiunusdfnuwefakeapikey"
+        myAPIKey = APIKey "n3vy87nviqufiunusdfnuwefakeapikey"
 ```
 
 ## Documentation

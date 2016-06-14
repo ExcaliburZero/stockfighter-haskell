@@ -20,26 +20,23 @@ performOrder :: IO String
 performOrder = response
   where response = requestOrder myOrder myAPIKey
         myOrder  = Order {
-            account   = \"EXB123456\"
-          , venue     = \"TESTEX\"
-          , symbol    = \"FOOBAR\"
-          , price     = 25000
-          , quantity  = 100
+            account   = Account \"EXB123456\"
+          , venue     = Venue \"TESTEX\"
+          , symbol    = Symbol \"FOOBAR\"
+          , price     = Price 25000
+          , quantity  = Quantity 100
           , direction = Buy
           , orderType = Limit
         }
-        myAPIKey = \"n3vy87nviqufiunusdfnuwefakeapikey\"
+        myAPIKey = APIKey \"n3vy87nviqufiunusdfnuwefakeapikey\"
 @
-
->>> performOrder
-"{\"ok\":false,\"error\":\"Auth/auth failed: %!(EXTRA string=Couldn't find that apiKey, service reports: No fighter with that API key.)\"}\n"
 -}
 module Network.Stockfighter.Trade
 (
   requestOrder,
 
-  Order(..), Account, Venue, Symbol, Price, Quantity, Direction(..),
-  OrderType(..), APIKey
+  Order(..), Account(..), Venue(..), Symbol(..), Price(..), Quantity(..),
+  Direction(..), OrderType(..)
 )
 where
 
@@ -62,54 +59,65 @@ data Order = Order {
     , orderType :: OrderType
   } deriving (Eq, Show)
 
+-- | Handles converting of Orders into json format.
 instance ToJSON Order where
   toJSON order =
     object [
-          pack "account"   .= account order
-        , pack "venue"     .= venue order
-        , pack "symbol"    .= symbol order
-        , pack "price"     .= price order
-        , pack "qty"       .= quantity order
+          pack "account"   .= (unAccount $ account order)
+        , pack "venue"     .= (unVenue $ venue order)
+        , pack "symbol"    .= (unSymbol $ symbol order)
+        , pack "price"     .= (unPrice $ price order)
+        , pack "qty"       .= (unQuantity $ quantity order)
         , pack "direction" .= show (direction order)
         , pack "orderType" .= show (orderType order)
       ]
 
   toEncoding order =
     pairs (
-           pack "account"   .= account order
-        <> pack "venue"     .= venue order
-        <> pack "symbol"    .= symbol order
-        <> pack "price"     .= price order
-        <> pack "qty"       .= quantity order
+           pack "account"   .= (unAccount $ account order)
+        <> pack "venue"     .= (unVenue $ venue order)
+        <> pack "symbol"    .= (unSymbol $ symbol order)
+        <> pack "price"     .= (unPrice $ price order)
+        <> pack "qty"       .= (unQuantity $ quantity order)
         <> pack "direction" .= show (direction order)
         <> pack "orderType" .= show (orderType order)
       )
 
 -- | An account with which an order can be made.
 --
--- ex. \"EXB123456\"
-type Account = String
+-- >>> Account "EXB123456"
+-- Account {unAccount = "EXB123456"}
+newtype Account = Account { unAccount :: String }
+  deriving (Eq, Show)
 
 -- | A venue which an order can be placed in.
 --
--- ex. \"TESTEX\"
-type Venue = String
+-- >>> Venue "TESTEX"
+-- Venue {unVenue = "TESTEX"}
+newtype Venue = Venue { unVenue :: String }
+  deriving (Eq, Show)
 
 -- | A symbol which represents a stock that can be traded.
 --
--- ex. \"FOOBAR\"
-type Symbol = String
+-- >>> Symbol "FOOBAR"
+-- Symbol {unSymbol = "FOOBAR"}
+newtype Symbol = Symbol { unSymbol :: String }
+  deriving (Eq, Show)
 
 -- | A price at which a stock can be traded. Units are in pennies USD. For
 -- example, a value of 25000 would become $250.00.
 --
--- ex. 25000
-type Price = Int
+-- >>> Price 25000
+-- Price {unPrice = 25000}
+newtype Price = Price { unPrice :: Int }
+  deriving (Eq, Show)
 
 -- | A quantity of stocks that can be used in a trade.
 --
--- ex. 100
-type Quantity = Int
+-- >>> Quantity 100
+-- Quantity {unQuantity = 100}
+newtype Quantity = Quantity { unQuantity :: Int }
+  deriving (Eq, Show)
 
 -- | A direction of a trade indicating whether one is buying or selling stocks.
 data Direction = Buy  -- ^ Stocks are being purchased
@@ -134,11 +142,6 @@ instance Show OrderType where
   show FillOrKill        = "fill-or-kill"
   show ImmediateOrCancel = "immeditate-or-cancel"
 
--- | The API key used to place an order.
---
--- ex. "uhdyf872f8ui23hdh98d23ydiuayf7q2yf82y383"
-type APIKey = String
-
 -- | Sends a request for the given order using the given APIKey, and returns
 -- the response.
 --
@@ -146,7 +149,7 @@ type APIKey = String
 -- <https://starfighter.readme.io/docs/place-new-order placing stock orders>
 -- for more information.
 --
--- >>> requestOrder testOrder "invalidAPIKey"
+-- >>> requestOrder testOrder (APIKey "invalidAPIKey")
 -- "{\"ok\":false,\"error\":\"Auth/auth failed: %!(EXTRA string=Couldn't find that apiKey, service reports: No fighter with that API key.)\"}\n"
 requestOrder :: Order     -- ^ Order to request
              -> APIKey    -- ^ APIKey to use for the order request
@@ -154,23 +157,29 @@ requestOrder :: Order     -- ^ Order to request
 requestOrder order apikey = response
   where response = sendRequest requestInfo
         requestInfo = createOrderRequest order baseUrl apikey
-        baseUrl = "https://api.stockfighter.io/ob/api"
+        baseUrl = BaseUrl "https://api.stockfighter.io/ob/api"
 
 -- | Creates an order request from an order, API base url, and APIKey.
 createOrderRequest :: Order -> BaseUrl -> APIKey -> Request
-createOrderRequest order baseUrl apikey = (requestUrl, httpHeader, requestContents)
-  where requestUrl = baseUrl ++ "/venues/" ++ venue order ++ "/stocks/" ++ symbol order ++ "/orders"
-        httpHeader = [("X-Starfighter-Authorization", apikey)]
-        requestContents = byteStringToString $ encode order
+createOrderRequest order baseUrl apikey = request
+  where request = Request {
+              url      = requestUrl
+            , header   = httpHeader
+            , contents = requestContents
+          }
+        requestUrl = RequestUrl $ unBaseUrl baseUrl ++ urlEnding
+        urlEnding  = "/venues/" ++ (unVenue $ venue order) ++ "/stocks/" ++ (unSymbol $ symbol order) ++ "/orders"
+        httpHeader = HTTPHeader [("X-Starfighter-Authorization", unAPIKey apikey)]
+        requestContents = RequestContents $ byteStringToString $ encode order
 
 -- | An example Order to test with.
 testOrder :: Order
 testOrder = Order {
-      account   = "EXB123456"
-    , venue     = "TESTEX"
-    , symbol    = "FOOBAR"
-    , price     = 25000
-    , quantity  = 100
+      account   = Account "EXB123456"
+    , venue     = Venue "TESTEX"
+    , symbol    = Symbol "FOOBAR"
+    , price     = Price 25000
+    , quantity  = Quantity 100
     , direction = Buy
     , orderType = Limit
   }
