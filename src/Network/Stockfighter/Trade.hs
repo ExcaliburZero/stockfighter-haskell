@@ -140,7 +140,7 @@ instance Show OrderType where
   show Limit             = "limit"
   show Market            = "market"
   show FillOrKill        = "fill-or-kill"
-  show ImmediateOrCancel = "immeditate-or-cancel"
+  show ImmediateOrCancel = "immediate-or-cancel"
 
 -- | Sends a request for the given order using the given APIKey, and returns
 -- the response.

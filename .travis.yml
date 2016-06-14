@@ -40,4 +40,4 @@ script:
 
 after_script:
   # Send a test coverage report to Coveralls.io
-  - shc system-test unit-tests
+  - shc stockfighter unit-tests
