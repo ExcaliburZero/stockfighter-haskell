@@ -32,7 +32,7 @@ script:
   # Build and test the program
   - stack build --no-terminal --coverage
   - stack test --no-terminal --coverage
-  - doctest src/Network/Stockfighter/*.hs
+  - doctest $(find src -name "*.hs")
 
   # Generate the documentation and check the package validity
   - stack haddock --no-terminal
