@@ -36,7 +36,9 @@ module Network.Stockfighter.Trade
   requestOrder,
 
   Order(..), Account(..), Venue(..), Symbol(..), Price(..), Quantity(..),
-  Direction(..), OrderType(..)
+  Direction(..), OrderType(..),
+
+  createOrderRequest
 )
 where
 
@@ -171,15 +173,3 @@ createOrderRequest order baseUrl apikey = request
         urlEnding  = "/venues/" ++ (unVenue $ venue order) ++ "/stocks/" ++ (unSymbol $ symbol order) ++ "/orders"
         httpHeader = HTTPHeader [("X-Starfighter-Authorization", unAPIKey apikey)]
         requestContents = RequestContents $ byteStringToString $ encode order
-
--- | An example Order to test with.
-testOrder :: Order
-testOrder = Order {
-      account   = Account "EXB123456"
-    , venue     = Venue "TESTEX"
-    , symbol    = Symbol "FOOBAR"
-    , price     = Price 25000
-    , quantity  = Quantity 100
-    , direction = Buy
-    , orderType = Limit
-  }

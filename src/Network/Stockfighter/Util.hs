@@ -66,22 +66,35 @@ data Request = Request {
   }
   deriving (Eq, Show)
 
+-- | A Curl command.
+--
+-- >>> CurlCommand "curl -sS https://stockfighter.com -d @tmp-file.json"
+-- CurlCommand {unCurlCommand = "curl -sS https://stockfighter.com -d @tmp-file.json"}
+newtype CurlCommand = CurlCommand { unCurlCommand :: String }
+  deriving (Eq, Show)
+
 -- | Sends the given request using a curl command.
 --
 -- Stores the request body in a temporary file `tmp-stockfighter-request.json`
 -- which is deleted once the curl command finishes running.
 sendRequest :: Request -> IO String
 sendRequest request = response
-  where response = do writeFile orderFileName $ unRequestContents $ contents request
+  where response = do writeFile tmpFileName $ unRequestContents $ contents request
                       (_, Just stdout, _, handler) <- createProcess (shell curlCommand){ std_out = CreatePipe }
                       _ <- waitForProcess handler
-                      removeFile orderFileName
+                      removeFile tmpFileName
                       hGetContents stdout
-        curlCommand = curlCommand2
-        curlCommand2 = unwords ["curl", "-sS", unRequestUrl $ url request, "-d", "@" ++ orderFileName,
-                                "-H", "\"" ++ (headerToString $ header request) ++ "\""
-                               ]
-        orderFileName = "tmp-stockfighter-request.json"
+        curlCommand = unCurlCommand $ requestToCurlCommand request tmpFileName
+        tmpFileName = "tmp-stockfighter-request.json"
+
+-- | Creates a curl command to send the given request using the contents of the
+-- given temporary file as the request body.
+requestToCurlCommand :: Request -> FilePath -> CurlCommand
+requestToCurlCommand request tmpFile = curlCommand
+  where curlCommand = CurlCommand $ unwords [
+            "curl", "-sS", unRequestUrl $ url request, "-d", "@" ++ tmpFile,
+            "-H", "\"" ++ (headerToString $ header request) ++ "\""
+          ]
 
 -- | Converts an http header definition into its corresponding String
 -- representation.
